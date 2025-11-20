@@ -1,0 +1,39 @@
+{
+  "name": "camunda-modeler-bpmn-xml-sorter",
+  "version": "0.1.0",
+  "description": "Camunda Modeler plugin that sorts BPMN XML automatically on save",
+  "main": "index.js",
+  "scripts": {
+    "bundle": "webpack",
+    "bundle:watch": "webpack -w",
+    "link": "node scripts/link.cjs",
+    "install-plugin": "npm run bundle && node scripts/install.cjs",
+    "format": "prettier --write \"**/*.js\"",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/camunda/camunda-modeler-plugins.git"
+  },
+  "keywords": [
+    "camunda",
+    "modeler",
+    "plugin"
+  ],
+  "author": "Patricia Lipp",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/camunda/camunda-modeler-plugins/issues"
+  },
+  "homepage": "https://github.com/camunda/camunda-modeler-plugins#readme",
+  "devDependencies": {
+    "camunda-modeler-plugin-helpers": "^6.0.0",
+    "prettier": "^3.6.2",
+    "vitest": "^4.0.9",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.8.11"
+  }
+}

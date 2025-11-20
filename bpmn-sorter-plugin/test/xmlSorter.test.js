@@ -1,0 +1,259 @@
+import { describe, it, expect } from 'vitest';
+import { sortXml } from '../client/xmlSorter.js';
+
+function normalizeXml(xml) {
+  return xml
+    .replace(/>\s+</g, '><')
+    .replace(/>\s+/g, '>')
+    .replace(/\s+</g, '<');
+}
+
+describe('sortXml', () => {
+  describe('basic tests', () => {
+    it('should sort XML elements alphabetically by tag name', () => {
+      const input = `<root>
+  <bpmn:process id="Process_1">
+    <bpmn:startEvent id="StartEvent_1"/>
+    <bpmn:endEvent id="EndEvent_1"/>
+  </bpmn:process>
+</root>`;
+
+      const expected = `<root><bpmn:process id="Process_1"><bpmn:endEvent id="EndEvent_1" /><bpmn:startEvent id="StartEvent_1" /></bpmn:process></root>`;
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should handle nested elements', () => {
+      const input = `<root>
+  <child2>
+    <subchild2/>
+    <subchild1/>
+  </child2>
+  <child1/>
+</root>`;
+
+      const expected = `<root><child1 /><child2><subchild1 /><subchild2 /></child2></root>`;
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should sort elements by id when tag names are the same', () => {
+      const input = `<root>
+  <element id="b"/>
+  <element id="a"/>
+</root>`;
+
+      const expected = `<root><element id="a" /><element id="b" /></root>`;
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+  });
+
+  describe('special cases', () => {
+    it('should sort props', () => {
+      const input = `<props:root xmlns:props="http://properties">
+<props:attributes id="Attributes_1" />
+<props:simpleBody />
+<props:containedCollection />
+</props:root>`;
+
+      const result = sortXml(input);
+
+      const expected =
+        normalizeXml(`<props:root xmlns:props="http://properties">
+<props:attributes id="Attributes_1" />
+<props:containedCollection />
+<props:simpleBody />
+</props:root>`);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should sort mixed namespaces', () => {
+      const input = `<ext:root xmlns:ext="http://extended" xmlns:props="http://properties">
+<props:attributes id="Attributes_1" />
+<props:attributes id="Attributes_2" />
+<ext:extendedComplex numCount="100" />
+<ext:base />
+</ext:root>`;
+
+      const expected =
+        normalizeXml(`<ext:root xmlns:ext="http://extended" xmlns:props="http://properties">
+<ext:base />
+<ext:extendedComplex numCount="100" />
+<props:attributes id="Attributes_1" />
+<props:attributes id="Attributes_2" />
+</ext:root>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should sort nesteds', () => {
+      const input = `<e:root xmlns:e="http://extensions" xmlns:other="http://other">
+<e:id>FOO</e:id>
+<other:nestedMeta>
+<other:meta key="k1" value="v1" />
+<other:meta key="k2" value="v2" />
+<other:additionalNote>
+this is some text
+</other:additionalNote>
+</other:nestedMeta>
+</e:root>`;
+
+      const expected =
+        normalizeXml(`<e:root xmlns:e="http://extensions" xmlns:other="http://other">
+<e:id>FOO</e:id>
+<other:nestedMeta>
+<other:additionalNote>this is some text</other:additionalNote>
+<other:meta key="k1" value="v1" />
+<other:meta key="k2" value="v2" />
+</other:nestedMeta>
+</e:root>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should sort element lists', () => {
+      const input = `<example1:parent xmlns:example1="http://example.org" xmlns:example2="http://example.com">
+<example1:dTag />
+<example1:cTag>c1Body</example1:cTag>
+<example1:bTag id="b" />
+<example1:cTag>c2Body</example1:cTag>
+<example1:aTag id="a2" />
+<example2:dTag />
+<example1:aTag id="a1" />
+</example1:parent>`;
+
+      const expected =
+        normalizeXml(`<example1:parent xmlns:example1="http://example.org" xmlns:example2="http://example.com">
+<example1:aTag id="a1" />
+<example1:aTag id="a2" />
+<example1:bTag id="b" />
+<example1:cTag>c1Body</example1:cTag>
+<example1:cTag>c2Body</example1:cTag>
+<example1:dTag />
+<example2:dTag />
+</example1:parent>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should sort element lists and put executable processes first', () => {
+      const input = `<bpmn:parent xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<bpmn:process id="Process_id1" />
+<bpmn:process id="Process_id3" isExecutable="true" />
+<bpmn:process id="Process_id2" isExecutable="false" />
+</bpmn:parent>`;
+
+      const expected =
+        normalizeXml(`<bpmn:parent xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<bpmn:process id="Process_id3" isExecutable="true" />
+<bpmn:process id="Process_id1" />
+<bpmn:process id="Process_id2" isExecutable="false" />
+</bpmn:parent>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should keep sort order of listeners', () => {
+      const input = `<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener expression="bbbbbbb" event="start" />
+<camunda:executionListener expression="aaaaaa" event="start" />
+</bpmn:extensionElements>`;
+
+      const expected =
+        normalizeXml(`<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener expression="bbbbbbb" event="start" />
+<camunda:executionListener expression="aaaaaa" event="start" />
+</bpmn:extensionElements>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should keep original order for identical listeners', () => {
+      const input = `<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener event="start" />
+<camunda:executionListener event="start" />
+<camunda:executionListener event="start" />
+</bpmn:extensionElements>`;
+
+      // Sorting should not change the document even if the underlying JS engine uses an unstable sort.
+      const result = sortXml(input);
+      expect(result).toBe(`<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener event="start" />
+<camunda:executionListener event="start" />
+<camunda:executionListener event="start" />
+</bpmn:extensionElements>`);
+    });
+
+    it('should keep sort order of listeners - body or not', () => {
+      const input = `<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener expression="bbbbbbb" event="start" />
+<camunda:executionListener event="start">
+<camunda:script scriptFormat="Groovy">print("Hello, World!");</camunda:script>
+</camunda:executionListener>
+</bpmn:extensionElements>`;
+
+      const expected =
+        normalizeXml(`<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+<camunda:executionListener expression="bbbbbbb" event="start" />
+<camunda:executionListener event="start">
+<camunda:script scriptFormat="Groovy">print("Hello, World!");</camunda:script>
+</camunda:executionListener>
+</bpmn:extensionElements>`);
+
+      const result = sortXml(input);
+      expect(normalizeXml(result)).toBe(expected);
+    });
+
+    it('should retain namespace declarations on multiple branches', () => {
+      const input = `<root>
+  <branchA xmlns:foo="http://example.com/foo">
+    <foo:item id="Item_1" />
+  </branchA>
+  <branchB xmlns:foo="http://example.com/foo">
+    <foo:item id="Item_2" />
+  </branchB>
+</root>`;
+
+      const expected = normalizeXml(`<root>
+<branchA xmlns:foo="http://example.com/foo">
+<foo:item id="Item_1" />
+</branchA>
+<branchB xmlns:foo="http://example.com/foo">
+<foo:item id="Item_2" />
+</branchB>
+</root>`);
+
+      const result = sortXml(input);
+      const namespaceOccurrences =
+        result.match(/xmlns:foo="http:\/\/example.com\/foo"/g) || [];
+
+      expect(normalizeXml(result)).toBe(expected);
+      expect(namespaceOccurrences).toHaveLength(2);
+    });
+
+    it('should preserve significant whitespace in attributes and text', () => {
+      const input = `<root><child label="foo   bar">Hello   World</child></root>`;
+      const result = sortXml(input);
+
+      expect(result).toContain('label="foo   bar"');
+      expect(result).toContain('Hello   World');
+    });
+
+    it('should keep text nodes in place when sorting siblings', () => {
+      const input = `<root>before <b attr="2"/> between <a attr="1"/> after</root>`;
+      const expected = `<root>before <a attr="1" /> between <b attr="2" /> after</root>`;
+
+      const result = sortXml(input);
+      expect(result).toBe(expected);
+    });
+  });
+});
