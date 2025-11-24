@@ -1,6 +1,6 @@
 # BPMN XML Sorter Plugin
 
-[![Compatible with Camunda Modeler version 2.2+](https://img.shields.io/badge/Modeler_Version-2.2+-blue.svg)](#) [![Plugin Type](https://img.shields.io/badge/Plugin_Type-BPMN-orange.svg)](#)
+[![Compatible with Camunda Modeler version 2.2+](https://img.shields.io/badge/Modeler_Version-5.0+-blue.svg)](#) [![Plugin Type](https://img.shields.io/badge/Plugin_Type-BPMN-orange.svg)](#)
 
 The Camunda Modeler does not keep the order of XML elements when saving any change. This makes the comparision
 of model changes e.g. via `git diff` quite hard.
