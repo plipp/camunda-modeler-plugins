@@ -27,13 +27,13 @@
   },
   "homepage": "https://github.com/camunda/camunda-modeler-plugins#readme",
   "devDependencies": {
-    "camunda-modeler-plugin-helpers": "^6.0.0",
-    "prettier": "^3.6.2",
-    "vitest": "^4.0.9",
-    "webpack": "^5.102.1",
-    "webpack-cli": "^6.0.1"
+    "camunda-modeler-plugin-helpers": "^7.0.0",
+    "prettier": "^3.9.10",
+    "vitest": "^5.1.0",
+    "webpack": "^5.112.2",
+    "webpack-cli": "^7.3.1"
   },
   "dependencies": {
-    "@xmldom/xmldom": "^0.8.11"
+    "@xmldom/xmldom": "^0.9.12"
   }
 }

@@ -11,6 +11,17 @@ A plugin that automatically sorts BPMN XML elements alphabetically on save, impr
 - **Location**: [`bpmn-sorter-plugin/`](bpmn-sorter-plugin/)
 - **Details**: See [bpmn-sorter-plugin/README.md](bpmn-sorter-plugin/README.md) for installation, usage, and development instructions.
 
+## Dependency Updates
+
+see: https://www.npmjs.com/package/npm-check-updates:
+
+```
+npm install -g npm-check-updates
+
+ncu -u
+npm install
+```
+
 ## Contributing
 
 Contributions are welcome! If you'd like to add a new plugin or improve existing ones:

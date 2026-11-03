@@ -11,14 +11,14 @@ function normalizeXml(xml) {
 describe('sortXml', () => {
   describe('basic tests', () => {
     it('should sort XML elements alphabetically by tag name', () => {
-      const input = `<root>
+      const input = `<root xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <bpmn:process id="Process_1">
     <bpmn:startEvent id="StartEvent_1"/>
     <bpmn:endEvent id="EndEvent_1"/>
   </bpmn:process>
 </root>`;
 
-      const expected = `<root><bpmn:process id="Process_1"><bpmn:endEvent id="EndEvent_1" /><bpmn:startEvent id="StartEvent_1" /></bpmn:process></root>`;
+      const expected = `<root xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"><bpmn:process id="Process_1"><bpmn:endEvent id="EndEvent_1" /><bpmn:startEvent id="StartEvent_1" /></bpmn:process></root>`;
 
       const result = sortXml(input);
       expect(normalizeXml(result)).toBe(expected);
