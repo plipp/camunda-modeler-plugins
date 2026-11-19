@@ -186,7 +186,8 @@ this is some text
 
       // Sorting should not change the document even if the underlying JS engine uses an unstable sort.
       const result = sortXml(input);
-      expect(result).toBe(`<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      expect(result)
+        .toBe(`<bpmn:extensionElements xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
 <camunda:executionListener event="start" />
 <camunda:executionListener event="start" />
 <camunda:executionListener event="start" />
@@ -254,6 +255,61 @@ this is some text
 
       const result = sortXml(input);
       expect(result).toBe(expected);
+    });
+  });
+
+  describe('BPMN schema order and diff stability', () => {
+    const NS = `xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn"`;
+
+    it('should keep incoming/outgoing before event definitions', () => {
+      const input = `<bpmn:process ${NS} id="P"><bpmn:endEvent id="E"><bpmn:errorEventDefinition id="D" /><bpmn:outgoing>b</bpmn:outgoing><bpmn:incoming>a</bpmn:incoming></bpmn:endEvent></bpmn:process>`;
+      const expected = `<bpmn:process ${NS} id="P"><bpmn:endEvent id="E"><bpmn:incoming>a</bpmn:incoming><bpmn:outgoing>b</bpmn:outgoing><bpmn:errorEventDefinition id="D" /></bpmn:endEvent></bpmn:process>`;
+      expect(sortXml(input)).toBe(expected);
+    });
+
+    it('should keep conditionExpression after extensionElements', () => {
+      const input = `<bpmn:sequenceFlow ${NS} id="F"><bpmn:conditionExpression>x</bpmn:conditionExpression><bpmn:extensionElements /></bpmn:sequenceFlow>`;
+      const expected = `<bpmn:sequenceFlow ${NS} id="F"><bpmn:extensionElements /><bpmn:conditionExpression>x</bpmn:conditionExpression></bpmn:sequenceFlow>`;
+      expect(sortXml(input)).toBe(expected);
+    });
+
+    it('should keep BPMNLabel after Bounds and waypoints in order', () => {
+      const input = `<bpmndi:BPMNPlane ${NS}><bpmndi:BPMNShape id="S"><bpmndi:BPMNLabel><dc:Bounds x="1" /></bpmndi:BPMNLabel><dc:Bounds x="2" /></bpmndi:BPMNShape><bpmndi:BPMNEdge id="E"><bpmndi:BPMNLabel /><di:waypoint x="9" /><di:waypoint x="1" /></bpmndi:BPMNEdge></bpmndi:BPMNPlane>`;
+      const expected = `<bpmndi:BPMNPlane ${NS}><bpmndi:BPMNEdge id="E"><di:waypoint x="9" /><di:waypoint x="1" /><bpmndi:BPMNLabel /></bpmndi:BPMNEdge><bpmndi:BPMNShape id="S"><dc:Bounds x="2" /><bpmndi:BPMNLabel><dc:Bounds x="1" /></bpmndi:BPMNLabel></bpmndi:BPMNShape></bpmndi:BPMNPlane>`;
+      expect(sortXml(input)).toBe(expected);
+    });
+
+    it('should put process artifacts after flow elements and laneSet first', () => {
+      const input = `<bpmn:process ${NS} id="P"><bpmn:association id="A" /><bpmn:task id="T" /><bpmn:laneSet id="L" /></bpmn:process>`;
+      const expected = `<bpmn:process ${NS} id="P"><bpmn:laneSet id="L" /><bpmn:task id="T" /><bpmn:association id="A" /></bpmn:process>`;
+      expect(sortXml(input)).toBe(expected);
+    });
+
+    it('should not alter CDATA or comment content', () => {
+      const input = `<bpmn:script ${NS}><![CDATA[var html = "<br/>";]]></bpmn:script>`;
+      expect(sortXml(input)).toBe(input);
+
+      const withComment = `<root><!-- <x/> --></root>`;
+      expect(sortXml(withComment)).toBe(withComment);
+    });
+
+    it('should keep order of order-sensitive lists', () => {
+      const input = `<camunda:list ${NS}><camunda:value>b</camunda:value><camunda:value>a</camunda:value></camunda:list>`;
+      expect(sortXml(input)).toBe(input);
+    });
+
+    it('should sort incoming/outgoing references by body', () => {
+      const input = `<bpmn:task ${NS} id="T"><bpmn:incoming>b</bpmn:incoming><bpmn:incoming>a</bpmn:incoming></bpmn:task>`;
+      const expected = `<bpmn:task ${NS} id="T"><bpmn:incoming>a</bpmn:incoming><bpmn:incoming>b</bpmn:incoming></bpmn:task>`;
+      expect(sortXml(input)).toBe(expected);
+    });
+
+    it('should be idempotent and independent of input order', () => {
+      const a = `<bpmn:process ${NS} id="P"><bpmn:task id="T1" /><bpmn:endEvent id="E"><bpmn:errorEventDefinition id="D" /><bpmn:incoming>f</bpmn:incoming></bpmn:endEvent><bpmn:sequenceFlow id="F" /></bpmn:process>`;
+      const b = `<bpmn:process ${NS} id="P"><bpmn:sequenceFlow id="F" /><bpmn:endEvent id="E"><bpmn:incoming>f</bpmn:incoming><bpmn:errorEventDefinition id="D" /></bpmn:endEvent><bpmn:task id="T1" /></bpmn:process>`;
+      const sortedA = sortXml(a);
+      expect(sortXml(sortedA)).toBe(sortedA);
+      expect(sortXml(b)).toBe(sortedA);
     });
   });
 });

@@ -5,7 +5,6 @@ class XMLSorterPlugin {
   constructor(eventBus) {
     eventBus.on('saveXML.serialized', function (event) {
       // Sort the XML
-      console.log('saveXML.serialized: sortXml');
       return sortXml(event.xml);
     });
   }

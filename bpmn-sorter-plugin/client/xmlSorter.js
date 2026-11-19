@@ -7,7 +7,11 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
  */
 export function sortXml(xmlString) {
   function normalized(xml) {
-    return xml.replace(/([^>\s])\/>/g, '$1 />');
+    // Self-close normalization must not touch CDATA sections or comments.
+    return xml.replace(
+      /<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|([^>\s])\/>/g,
+      (match, char) => (char === undefined ? match : `${char} />`)
+    );
   }
 
   const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
@@ -78,74 +82,145 @@ export function sortElement(element) {
   });
 }
 
-function localeCompare(valueA, valueB) {
-  if (valueA) {
-    return valueA.localeCompare(valueB || '');
-  } else if (valueB) {
-    return -1 * valueB.localeCompare(valueA || '');
-  }
-  return 0;
+const BPMN_NAMESPACES = new Set([
+  'http://www.omg.org/spec/BPMN/20100524/MODEL',
+  'http://www.omg.org/spec/BPMN/20100524/DI',
+  'http://www.omg.org/spec/DD/20100524/DC',
+  'http://www.omg.org/spec/DD/20100524/DI',
+]);
+
+// Order mandated by the BPMN 2.0 / DI XSD sequences. Elements before '*' come first,
+// everything not listed (flow elements, root elements, foreign namespaces) shares
+// the '*' rank and is sorted by tag name / id.
+const BPMN_ORDER = [
+  'documentation',
+  'extensionElements',
+  'import',
+  'extension',
+  'incoming',
+  'outgoing',
+  'auditing',
+  'monitoring',
+  'ioSpecification',
+  'property',
+  'dataInput',
+  'dataOutput',
+  'dataInputAssociation',
+  'dataOutputAssociation',
+  'inputSet',
+  'outputSet',
+  'laneSet',
+  'Bounds',
+  'waypoint',
+  'BPMNPlane',
+  'interfaceRef',
+  'endPointRef',
+  'participantMultiplicity',
+  'partitionElement',
+  'flowNodeRef',
+  'childLaneSet',
+  'loopCardinality',
+  'loopDataInputRef',
+  'loopDataOutputRef',
+  'inputDataItem',
+  'outputDataItem',
+  'complexBehaviorDefinition',
+  '*',
+  'participant',
+  'messageFlow',
+  'association',
+  'group',
+  'textAnnotation',
+  'conversation',
+  'callConversation',
+  'subConversation',
+  'conversationAssociation',
+  'participantAssociation',
+  'messageFlowAssociation',
+  'correlationKey',
+  'choreographyRef',
+  'conversationLink',
+  'BPMNDiagram',
+  'relationship',
+  'resourceRole',
+  'performer',
+  'humanPerformer',
+  'potentialOwner',
+  'correlationSubscription',
+  'supports',
+  'multiInstanceLoopCharacteristics',
+  'standardLoopCharacteristics',
+  'script',
+  'rendering',
+  'eventDefinition',
+  'eventDefinitionRef',
+  'BPMNLabel',
+  'BPMNLabelStyle',
+  'completionCondition',
+];
+
+const RANKS = new Map(BPMN_ORDER.map((name, index) => [name, index]));
+const DEFAULT_RANK = RANKS.get('*');
+
+// Order-free reference lists: body text is a safe, deterministic sort key.
+const BODY_SORTED = new Set(['incoming', 'outgoing', 'flowNodeRef']);
+
+function compareStrings(valueA, valueB) {
+  if (valueA === valueB) return 0;
+  return valueA < valueB ? -1 : 1;
 }
 
-function sortXmlList(aElementSerializer, bElementSerializer) {
-  if (
-    !aElementSerializer ||
-    !aElementSerializer.element ||
-    !bElementSerializer ||
-    !bElementSerializer.element
-  ) {
+function getRank(element) {
+  if (!BPMN_NAMESPACES.has(element.namespaceURI)) {
+    return DEFAULT_RANK;
+  }
+  const name = element.localName || '';
+  const lookup = name.endsWith('EventDefinition') ? 'eventDefinition' : name;
+  return RANKS.has(lookup) ? RANKS.get(lookup) : DEFAULT_RANK;
+}
+
+function sortXmlList(a, b) {
+  if (!a || !a.element || !b || !b.element) {
     return 0;
   }
 
-  let compareResult = localeCompare(
-    aElementSerializer.tagName,
-    bElementSerializer.tagName
-  );
+  if (a.rank !== b.rank) {
+    return a.rank - b.rank;
+  }
+
+  let compareResult = compareStrings(a.tagName, b.tagName);
   if (compareResult !== 0) {
     return compareResult;
   }
 
-  if (
-    (aElementSerializer.isExecutable || bElementSerializer.isExecutable) &&
-    aElementSerializer.isExecutable !== bElementSerializer.isExecutable
-  ) {
-    return aElementSerializer.isExecutable ? -1 : 1;
+  if (a.isExecutable !== b.isExecutable) {
+    return a.isExecutable ? -1 : 1;
   }
 
-  const relevantProps = ['id', '$body', 'body'];
-  for (let propIndex = 0; propIndex < relevantProps.length; propIndex++) {
-    const relevantProperty = relevantProps[propIndex];
-    compareResult = localeCompare(
-      aElementSerializer[relevantProperty],
-      bElementSerializer[relevantProperty]
-    );
-    if (compareResult !== 0) {
-      return compareResult;
-    }
+  compareResult = compareStrings(a.id, b.id);
+  if (compareResult !== 0) {
+    return compareResult;
   }
-  return 0;
+
+  return compareStrings(a.body, b.body);
 }
 
 function serializeElement(element) {
   return {
     element,
-    tagName: element?.tagName || '',
-    isExecutable: element?.getAttribute('isExecutable') === 'true',
-    id: element?.getAttribute('id') || '',
-    $body: element?.getAttribute('$body') || '',
-    body: getElementBody(element),
+    rank: getRank(element),
+    tagName: element.tagName || '',
+    isExecutable: element.getAttribute('isExecutable') === 'true',
+    id: element.getAttribute('id') || '',
+    body: BODY_SORTED.has(element.localName) ? getElementBody(element) : '',
   };
 }
 
 function getElementBody(element) {
-  if (!element || !element.childNodes) {
-    return '';
-  }
-
   let buffer = '';
   for (let i = 0; i < element.childNodes.length; i++) {
     const node = element.childNodes[i];
-    if (node.nodeType === 3 && node.nodeValue) {
+    if ((node.nodeType === 3 || node.nodeType === 4) && node.nodeValue) {
       buffer += node.nodeValue;
     }
   }
