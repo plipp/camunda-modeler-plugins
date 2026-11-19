@@ -9,41 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-
-// Get the Camunda Modeler plugins directory based on OS
-function getCamundaPluginsDir() {
-  const platform = os.platform();
-  const homeDir = os.homedir();
-
-  switch (platform) {
-    case 'win32':
-      return path.join(
-        process.env.APPDATA || '',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-    case 'darwin':
-      return path.join(
-        homeDir,
-        'Library',
-        'Application Support',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-    default: // linux
-      return path.join(
-        homeDir,
-        '.config',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-  }
-}
-
-const PLUGIN_NAME = 'camunda-modeler-bpmn-xml-sorter';
+const { PLUGIN_NAME, getCamundaPluginsDir } = require('./pluginsDir.cjs');
 
 function createLink() {
   const pluginsDir = getCamundaPluginsDir();
@@ -63,9 +29,15 @@ function createLink() {
       console.log('✅ Created plugins directory');
     }
 
-    // Remove existing link/directory if it exists
-    if (fs.existsSync(targetPath)) {
-      const stats = fs.lstatSync(targetPath);
+    // Remove existing link/directory if it exists. lstat (not exists) so that
+    // dangling links are detected too.
+    let stats = null;
+    try {
+      stats = fs.lstatSync(targetPath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    if (stats) {
       if (stats.isSymbolicLink()) {
         fs.unlinkSync(targetPath);
         console.log('✅ Removed existing symbolic link');
@@ -78,29 +50,10 @@ function createLink() {
       }
     }
 
-    // Create symbolic link based on platform
-    if (platform === 'win32') {
-      // On Windows, use junction for directories
-      const { spawn } = require('child_process');
-      const mklink = spawn('mklink', ['/d', targetPath, sourcePath], {
-        shell: true,
-      });
-
-      mklink.on('close', (code) => {
-        if (code === 0) {
-          console.log('✅ Created symbolic link (Windows junction)');
-          printSuccessMessage();
-        } else {
-          console.log('❌ Failed to create symbolic link');
-          printManualInstructions(sourcePath, targetPath);
-        }
-      });
-    } else {
-      // On macOS/Linux, use ln -s
-      fs.symlinkSync(sourcePath, targetPath, 'dir');
-      console.log('✅ Created symbolic link');
-      printSuccessMessage();
-    }
+    // 'junction' is only used on Windows (ignored elsewhere) and needs no admin rights.
+    fs.symlinkSync(sourcePath, targetPath, 'junction');
+    console.log('✅ Created symbolic link');
+    printSuccessMessage();
   } catch (error) {
     console.error('❌ Failed to create symbolic link:', error.message);
     printManualInstructions(sourcePath, targetPath);
