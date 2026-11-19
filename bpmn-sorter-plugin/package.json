@@ -11,9 +11,10 @@
     "format": "prettier --write \"**/*.js\"",
     "test": "vitest run"
   },
+  "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/camunda/camunda-modeler-plugins.git"
+    "url": "git+https://github.com/plipp/camunda-modeler-plugins.git"
   },
   "keywords": [
     "camunda",
@@ -23,9 +24,9 @@
   "author": "Patricia Lipp",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/camunda/camunda-modeler-plugins/issues"
+    "url": "https://github.com/plipp/camunda-modeler-plugins/issues"
   },
-  "homepage": "https://github.com/camunda/camunda-modeler-plugins#readme",
+  "homepage": "https://github.com/plipp/camunda-modeler-plugins#readme",
   "devDependencies": {
     "camunda-modeler-plugin-helpers": "^7.0.0",
     "prettier": "^3.9.10",

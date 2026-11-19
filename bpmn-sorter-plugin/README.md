@@ -1,6 +1,6 @@
 # BPMN XML Sorter Plugin
 
-[![Compatible with Camunda Modeler version 2.2+](https://img.shields.io/badge/Modeler_Version-5.0+-blue.svg)](#) [![Plugin Type](https://img.shields.io/badge/Plugin_Type-BPMN-orange.svg)](#)
+[![Compatible with Camunda Modeler version 5.0+](https://img.shields.io/badge/Modeler_Version-5.0+-blue.svg)](#) [![Plugin Type](https://img.shields.io/badge/Plugin_Type-BPMN-orange.svg)](#)
 
 The Camunda Modeler does not keep the order of XML elements when saving any change. This makes the comparision
 of model changes e.g. via `git diff` quite hard.
@@ -9,7 +9,9 @@ This Camunda Modeler plugin tries to overcome this flaw by automatically sorting
 
 ## Features
 
-- **Automatic Sorting**: Sorts XML elements alphabetically by tag name, then by ID
+- **Automatic Sorting**: Sorts sibling XML elements by tag name, then executable first, then ID, while keeping the element order the BPMN 2.0 schema requires (e.g. `documentation`, `extensionElements`, `incoming`, `outgoing` first; `BPMNLabel` after `Bounds`/waypoints)
+- **Order-Preserving**: Elements without an ID (e.g. `camunda:value`, `di:waypoint`) keep their original order, since it is meaningful; attributes, CDATA and comments are left untouched
+- **Locale-Independent**: Comparison is by code unit, so every machine produces the same file
 - **Save Integration**: Runs automatically on every save (Ctrl+S)
 - **Git-Friendly**: Produces consistent XML output for meaningful diffs
 - **Non-Intrusive**: No visual changes to diagrams, only XML structure
@@ -87,13 +89,13 @@ Re-start the app in order to recognize the newly linked plugin.
 3. Save the file (Ctrl+S / Cmd+S)
 4. The XML will be automatically sorted before saving
 
-You can verify the sorting by checking Git diffs - elements and attributes will now appear in consistent alphabetical order.
+You can verify the sorting by checking Git diffs - sibling elements will now appear in a consistent order.
 
 ## Development
 
 ### Development Workflow
 
-- `npm run bundle` - Bundle the plugin for production
+- `npm run bundle` - Bundle the plugin (webpack development mode)
 - `npm run bundle:watch` - Bundle in watch mode for development
 
 Given you've setup and linked your plugin as explained above, you should be able to reload the modeler to pick up plugin changes. To do so, open the app's built-in development tools via `F12`. Then, within the development tools press the reload shortcuts `CTRL + R` or `CMD + R` to reload the app.
@@ -109,7 +111,7 @@ Given you've setup and linked your plugin as explained above, you should be able
 ### Project Structure
 
 ```
-bpmn-js-plugin-example/
+bpmn-sorter-plugin/
 ├── index.js             # Plugin entry point
 ├── package.json         # Dependencies and scripts
 ├── webpack.config.js    # Webpack configuration
@@ -120,8 +122,9 @@ bpmn-js-plugin-example/
 │   ├── xmlSorter.js     # XML sorting logic
 │   └── XMLSorterPlugin.js # Plugin class
 ├── scripts/             # Development scripts
-│   ├── install.cjs      # Installation script for production
-│   └── link.cjs         # Linking script for development
+│   ├── install.cjs      # Installation script (copies files into the Modeler)
+│   ├── link.cjs         # Linking script for development
+│   └── pluginsDir.cjs   # Shared Modeler plugins directory lookup
 ├── test/                # Test files
 │   └── xmlSorter.test.js # Unit tests
 └── dist/                # Bundled output (generated)

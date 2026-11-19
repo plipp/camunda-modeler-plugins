@@ -7,48 +7,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
-
-// Get the Camunda Modeler plugins directory based on OS
-function getCamundaPluginsDir() {
-  const platform = os.platform();
-  const homeDir = os.homedir();
-
-  switch (platform) {
-    case 'win32':
-      return path.join(
-        process.env.APPDATA || '',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-    case 'darwin':
-      return path.join(
-        homeDir,
-        'Library',
-        'Application Support',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-    default: // linux
-      return path.join(
-        homeDir,
-        '.config',
-        'camunda-modeler',
-        'resources',
-        'plugins'
-      );
-  }
-}
+const { PLUGIN_NAME, getCamundaPluginsDir } = require('./pluginsDir.cjs');
 
 // Files that need to be copied (relative to project root)
 const FILES_TO_COPY = [
   { source: 'index.js', target: 'index.js' },
   { source: 'dist/client.bundle.js', target: 'dist/client.bundle.js' },
-  { source: 'package.json', target: 'package.json' }
+  { source: 'package.json', target: 'package.json' },
 ];
-const PLUGIN_NAME = 'camunda-modeler-bpmn-xml-sorter';
 
 function copyFiles() {
   const pluginsDir = getCamundaPluginsDir();
@@ -71,23 +37,20 @@ function copyFiles() {
       console.log('✅ Created plugin directory');
     }
 
-    // Copy each required file
+    // Fail before copying anything if a required file (e.g. the bundle) is missing
+    FILES_TO_COPY.forEach(({ source }) => {
+      if (!fs.existsSync(path.join(projectRoot, source))) {
+        throw new Error(`${source} not found; run "npm run bundle" first`);
+      }
+    });
+
     FILES_TO_COPY.forEach(({ source, target }) => {
       const sourcePath = path.join(projectRoot, source);
       const targetPath = path.join(targetDir, target);
 
-      if (fs.existsSync(sourcePath)) {
-        // Create target subdirectories if needed
-        const targetDirPath = path.dirname(targetPath);
-        if (!fs.existsSync(targetDirPath)) {
-          fs.mkdirSync(targetDirPath, { recursive: true });
-        }
-        
-        fs.copyFileSync(sourcePath, targetPath);
-        console.log(`✅ Copied ${source}`);
-      } else {
-        console.log(`⚠️  Warning: ${source} not found in source directory`);
-      }
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.copyFileSync(sourcePath, targetPath);
+      console.log(`✅ Copied ${source}`);
     });
 
     console.log('');
