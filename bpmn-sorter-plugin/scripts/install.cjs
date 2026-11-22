@@ -12,6 +12,7 @@ const { PLUGIN_NAME, getCamundaPluginsDir } = require('./pluginsDir.cjs');
 // Files that need to be copied (relative to project root)
 const FILES_TO_COPY = [
   { source: 'index.js', target: 'index.js' },
+  { source: 'menu.js', target: 'menu.js' },
   { source: 'dist/client.bundle.js', target: 'dist/client.bundle.js' },
   { source: 'package.json', target: 'package.json' },
 ];

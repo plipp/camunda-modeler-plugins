@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0s5eay5" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="order-approval-process" name="Order Approval Process" isExecutable="true" camunda:historyTimeToLive="30">
+    <bpmn:endEvent id="EndEvent_OrderCompleted" name="Order Completed">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_AmountCheck" name="Amount &gt; $500?">
+      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoApproved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NeedsApproval</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_AfterApproval" sourceRef="UserTask_ManagerApproval" targetRef="ServiceTask_FulfillOrder" />
+    <bpmn:sequenceFlow id="Flow_AutoApproved" name="No" sourceRef="Gateway_AmountCheck" targetRef="ServiceTask_FulfillOrder">
+      <bpmn:conditionExpression xmlns:xsi="http://omg.org">${amount &lt;= 500}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NeedsApproval" name="Yes" sourceRef="Gateway_AmountCheck" targetRef="UserTask_ManagerApproval">
+      <bpmn:conditionExpression xmlns:xsi="http://w3.org">${amount &gt; 500}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="ServiceTask_FulfillOrder" targetRef="EndEvent_OrderCompleted" />
+    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="ServiceTask_ValidateOrder" targetRef="Gateway_AmountCheck" />
+    <bpmn:sequenceFlow id="Flow_ToValidate" sourceRef="StartEvent_OrderReceived" targetRef="ServiceTask_ValidateOrder" />
+    <bpmn:serviceTask id="ServiceTask_FulfillOrder" name="Fulfill Order" camunda:asyncBefore="true" camunda:delegateExpression="${fulfillOrderDelegate}">
+      <bpmn:incoming>Flow_AfterApproval</bpmn:incoming>
+      <bpmn:incoming>Flow_AutoApproved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="ServiceTask_ValidateOrder" name="Validate Order" camunda:delegateExpression="${validateOrderDelegate}">
+      <bpmn:incoming>Flow_ToValidate</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:startEvent id="StartEvent_OrderReceived" name="Order Received">
+      <bpmn:outgoing>Flow_ToValidate</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="UserTask_ManagerApproval" name="Approve Order" camunda:assignee="demo">
+      <bpmn:incoming>Flow_NeedsApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterApproval</bpmn:outgoing>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_OrderApproval">
+    <bpmndi:BPMNPlane id="BPMNPlane_OrderApproval" bpmnElement="order-approval-process">
+      <bpmndi:BPMNEdge id="Flow_AfterApproval_di" bpmnElement="Flow_AfterApproval">
+        <di:waypoint x="600" y="120" />
+        <di:waypoint x="660" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AutoApproved_di" bpmnElement="Flow_AutoApproved">
+        <di:waypoint x="420" y="145" />
+        <di:waypoint x="420" y="220" />
+        <di:waypoint x="710" y="220" />
+        <di:waypoint x="710" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NeedsApproval_di" bpmnElement="Flow_NeedsApproval">
+        <di:waypoint x="445" y="120" />
+        <di:waypoint x="500" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToEnd_di" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="760" y="120" />
+        <di:waypoint x="812" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToGateway_di" bpmnElement="Flow_ToGateway">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="395" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToValidate_di" bpmnElement="Flow_ToValidate">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_OrderCompleted_di" bpmnElement="EndEvent_OrderCompleted">
+        <dc:Bounds x="812" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AmountCheck_di" bpmnElement="Gateway_AmountCheck" isMarkerVisible="true">
+        <dc:Bounds x="395" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_FulfillOrder_di" bpmnElement="ServiceTask_FulfillOrder">
+        <dc:Bounds x="660" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_ValidateOrder_di" bpmnElement="ServiceTask_ValidateOrder">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_OrderReceived_di" bpmnElement="StartEvent_OrderReceived">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_ManagerApproval_di" bpmnElement="UserTask_ManagerApproval">
+        <dc:Bounds x="500" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
