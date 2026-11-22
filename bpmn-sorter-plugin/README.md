@@ -15,6 +15,9 @@ This Camunda Modeler plugin tries to overcome this flaw by automatically sorting
 - **Save Integration**: Runs automatically on every save (Ctrl+S)
 - **Git-Friendly**: Produces consistent XML output for meaningful diffs
 - **Non-Intrusive**: No visual changes to diagrams, only XML structure
+- **Fail-Safe**: If sorting fails, the unsorted XML is saved and a warning is logged; a save never fails because of the plugin
+- **Integrity Warnings**: Duplicate ids and `bpmnElement`/`sourceRef`/`targetRef` pointing to missing ids are logged as console warnings (open DevTools with F12); saving is not blocked
+- **On/Off Switch**: `Plugins → BPMN XML Sorter Plugin → Sorting on Save: ON/OFF` shows the current state; clicking it toggles (only active while a BPMN tab is open). The setting is stored in `bpmn-xml-sorter-plugin.json` in the Modeler's user data directory and applies to all BPMN tabs
 
 ## Installation
 
@@ -43,6 +46,7 @@ This Camunda Modeler plugin tries to overcome this flaw by automatically sorting
 
 4. Copy these essential files to the plugin directory:
    - `index.js` (plugin entry point)
+   - `menu.js` (Plugins menu entries)
    - `dist/client.bundle.js` (bundled client code)
    - `package.json` (plugin metadata)
 
@@ -113,6 +117,7 @@ Given you've setup and linked your plugin as explained above, you should be able
 ```
 bpmn-sorter-plugin/
 ├── index.js             # Plugin entry point
+├── menu.js              # Plugins menu: enable/disable sorting (Electron main process)
 ├── package.json         # Dependencies and scripts
 ├── webpack.config.js    # Webpack configuration
 ├── .prettierrc.json     # Prettier configuration
@@ -126,7 +131,9 @@ bpmn-sorter-plugin/
 │   ├── link.cjs         # Linking script for development
 │   └── pluginsDir.cjs   # Shared Modeler plugins directory lookup
 ├── test/                # Test files
-│   └── xmlSorter.test.js # Unit tests
+│   ├── xmlSorter.test.js # Unit tests
+│   ├── XMLSorterPlugin.test.js # Save hook, toggle, fail-safe, integrity tests
+│   └── fixtures/        # Sample BPMN models
 └── dist/                # Bundled output (generated)
     └── client.bundle.js
 ```

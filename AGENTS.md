@@ -17,7 +17,8 @@
 ## How the plugin works
 
 - `client/client.js` registers `XMLSorterPlugin` as a bpmn-js plugin via `camunda-modeler-plugin-helpers`.
-- `client/XMLSorterPlugin.js` listens to bpmn-js `saveXML.serialized` and returns `sortXml(event.xml)`; that returned string is what Camunda Modeler saves. This is the only integration point.
+- `client/XMLSorterPlugin.js` listens to bpmn-js `saveXML.serialized` and returns `sortXml(event.xml)`; that returned string is what Camunda Modeler saves. It fails open: any error is logged via `console.warn` and `undefined` is returned, so the unsorted XML is saved. It also logs `findIntegrityIssues` (duplicate ids, dangling `bpmnElement`/`sourceRef`/`targetRef`) as warnings, never blocking.
+- On/off state is owned by `menu.js` (Electron main process): `<userData>/bpmn-xml-sorter-plugin.json`, default on. The single menu entry's label shows the state (`Sorting on Save: ON/OFF`). `menu.js` emits `menu:action` `toggle-bpmn-xml-sorting` with `{ enabled }` on every menu rebuild while a BPMN tab is active (and on click, plus `menu:update`); the Modeler forwards it to the active tab's bpmn-js `editorActions`, where the plugin registered it and caches the value in `localStorage` (`bpmn-xml-sorter.enabled`). Menu entry is enabled only for `activeTab.type` `bpmn`/`cloud-bpmn`.
 - `client/xmlSorter.js` holds the tested logic: recursive sibling sort by tag name, then `isExecutable` elements first among same tags, then `id`/body. Non-element nodes (whitespace text) keep their original slots; equal elements keep their original order.
 - Sorting works on a parsed DOM tree. Keep it that way so namespace declarations survive; don't replace it with regex/string sorting.
 

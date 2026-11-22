@@ -227,3 +227,37 @@ function getElementBody(element) {
 
   return buffer.trim();
 }
+
+const REFERENCE_ATTRIBUTES = ['bpmnElement', 'sourceRef', 'targetRef'];
+
+/**
+ * Finds duplicate ids and references to missing ids.
+ * @param {string} xmlString - The XML string to check
+ * @returns {string[]} - Human readable issues, empty if none
+ */
+export function findIntegrityIssues(xmlString) {
+  const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
+  const elements = Array.from(doc.getElementsByTagName('*'));
+  const ids = new Set();
+  const issues = [];
+
+  elements.forEach((element) => {
+    const id = element.getAttribute('id');
+    if (!id) return;
+    if (ids.has(id)) issues.push(`duplicate id "${id}"`);
+    ids.add(id);
+  });
+
+  elements.forEach((element) => {
+    REFERENCE_ATTRIBUTES.forEach((name) => {
+      const ref = element.getAttribute(name);
+      if (ref && !ids.has(ref)) {
+        issues.push(
+          `${element.tagName} ${name}="${ref}" points to a missing id`
+        );
+      }
+    });
+  });
+
+  return issues;
+}
