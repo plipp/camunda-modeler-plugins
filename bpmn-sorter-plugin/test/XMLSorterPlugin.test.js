@@ -24,6 +24,7 @@ function createPlugin() {
 
 describe('XMLSorterPlugin', () => {
   beforeEach(() => {
+    // Stub the localStorage cache; menu.js owns the authoritative state file.
     const store = new Map();
     vi.stubGlobal('window', {
       localStorage: {
