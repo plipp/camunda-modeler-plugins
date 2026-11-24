@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Runs in the Electron main process, which owns the on/off setting (single source of truth).
-// The client keeps a localStorage copy and is re-synced on every menu rebuild.
+// The client keeps a localStorage cache and is re-synced on every menu rebuild.
 module.exports = function (electronApp, menuState) {
   const stateFile = path.join(
     electronApp.getPath('userData'),

@@ -2,18 +2,19 @@ import { findIntegrityIssues, sortXml } from './xmlSorter.js';
 
 export const TOGGLE_ACTION = 'toggle-bpmn-xml-sorting';
 
-// Cache of the setting owned by menu.js (main process), which re-sends it on every menu rebuild.
-const SORTING_ENABLED_KEY = 'bpmn-xml-sorter.enabled';
+// Cache for the setting owned by menu.js (main process).
+// menu.js re-sends the authoritative state on every menu rebuild.
+const SORTING_ENABLED_CACHE_KEY = 'bpmn-xml-sorter.enabled';
 
-function isSortingEnabled() {
-  return window.localStorage.getItem(SORTING_ENABLED_KEY) !== 'false';
+function isSortingEnabledCache() {
+  return window.localStorage.getItem(SORTING_ENABLED_CACHE_KEY) !== 'false';
 }
 
 class XMLSorterPlugin {
   // `eventBus` and `editorActions` will be injected through dependency injection
   constructor(eventBus, editorActions) {
     editorActions.register(TOGGLE_ACTION, ({ enabled }) => {
-      window.localStorage.setItem(SORTING_ENABLED_KEY, String(enabled));
+      window.localStorage.setItem(SORTING_ENABLED_CACHE_KEY, String(enabled));
     });
 
     eventBus.on('saveXML.serialized', function (event) {
@@ -23,7 +24,7 @@ class XMLSorterPlugin {
           console.warn(`[BPMN XML Sorter] ${issue}`)
         );
 
-        if (isSortingEnabled()) {
+        if (isSortingEnabledCache()) {
           return sortXml(event.xml);
         }
       } catch (error) {
