@@ -18,9 +18,10 @@ describe('menu.js', () => {
   let t;
   beforeEach(() => (t = setup()));
 
-  it('shows ON by default and syncs the client', () => {
+  it('shows ON by default and syncs the client', async () => {
     const [entry] = t.entries();
     expect(entry.label).toContain('ON');
+    await Promise.resolve();
     expect(t.emit).toHaveBeenCalledWith(
       'menu:action',
       'toggle-bpmn-xml-sorting',
@@ -40,6 +41,17 @@ describe('menu.js', () => {
     expect(entry.label).toContain('OFF');
     entry.action();
     expect(t.entries()[0].label).toContain('ON');
+  });
+
+  it('defers rebuild-time sync until the current call stack completes', async () => {
+    t.entries();
+    expect(t.emit).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(t.emit).toHaveBeenCalledWith(
+      'menu:action',
+      'toggle-bpmn-xml-sorting',
+      { enabled: true }
+    );
   });
 
   it('is disabled and does not sync outside BPMN tabs', () => {

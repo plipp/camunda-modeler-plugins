@@ -23,7 +23,11 @@ module.exports = function (electronApp, menuState) {
 
   // The action is only registered inside BPMN tabs.
   if (isBpmnTab) {
-    electronApp.emit('menu:action', 'toggle-bpmn-xml-sorting', { enabled });
+    // Defer rebuild-time sync so menu rebuilding during quit cannot re-enter
+    // the active tab and turn a close request into a reopen.
+    queueMicrotask(() => {
+      electronApp.emit('menu:action', 'toggle-bpmn-xml-sorting', { enabled });
+    });
   }
 
   return [
