@@ -22,12 +22,10 @@ module.exports = function (electronApp, menuState) {
   const isBpmnTab = tabType === 'bpmn' || tabType === 'cloud-bpmn';
 
   // The action is only registered inside BPMN tabs.
-  if (isBpmnTab) {
-    // Defer rebuild-time sync so menu rebuilding during quit cannot re-enter
-    // the active tab and turn a close request into a reopen.
-    queueMicrotask(() => {
-      electronApp.emit('menu:action', 'toggle-bpmn-xml-sorting', { enabled });
-    });
+  // Without a window, Modeler answers any menu:action by creating a new one,
+  // which turns closing/quitting into a reopen (menu rebuilds on window-all-closed).
+  if (isBpmnTab && electronApp.mainWindow) {
+    electronApp.emit('menu:action', 'toggle-bpmn-xml-sorting', { enabled });
   }
 
   return [
